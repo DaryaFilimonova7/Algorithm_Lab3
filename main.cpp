@@ -24,22 +24,19 @@ public:
     }
 };
 
-class Queue {
+class Stack_char {
 public:
-    List queue;  // стек как экземпляр списка
+    List_char stack;  // стек как экземпляр списка
     int size = 0;
-    void push(int x) {
-        queue.add_last(x);
+    void push(char x) {
+        stack.add_first(x);
         size++;
     }
-    Node* front() {
-        return queue.search_position(0);
-    }
-    Node* back() {
-        return queue.search_position(size-1);
+    Node_char* top() {
+        return stack.search_position(0);
     }
     void pop() {
-        queue.delete_position(0);
+        stack.delete_position(0);
         size--;
     }
     bool empty() {
@@ -49,39 +46,65 @@ public:
             return false;
     }
 };
+class Queue {
+public:
+    List_char queue;  // стек как экземпляр списка
+    int size = 0;
+    void push(char x) {
+        queue.add_last(x);
+        size++;
+    }
+    Node_char* front() {
+        return queue.search_position(0);
+    }
+    Node_char* back() {
+        return queue.search_position(size-1);
+    }
+    void pop() {
+        queue.delete_position(0);
+        size--;
+    }
+    char pos(int i) {
+        return queue.search_position(i)->data;
+    }
+};
 
 
 class Calculator
 {
 public:
-    static std::string change_expr(std::string);
-    static int calc(std::string);
+    static int priority(char);
+    static Queue change_expr(const std::string&);
+    static int calc(const std::string&);
 
 };
 
-std::string Calculator :: change_expr(std::string expr) {
-    Stack expr_st;
+
+// Вычисление приоритета операции
+int Calculator :: priority(char op) {
+    if (op == '*' || op == '/') {
+        return 1;
+    }
+    if (op == '+' || op == '-') {
+        return 2;
+    }
+    return 10; // для "("
+}
+
+// Перевод инфиксного выражения в постфиксное
+Queue Calculator :: change_expr(const std::string& expr) {
+    Stack_char expr_st;
     Queue expr_q;
-    int len = expr.length();
-    for (int i = 0; i < len; i++) {
-        if (expr[i] == ' ') {
-            continue;
+    for (char v: expr) {
+        if (v == ' ' || isdigit(v)) {
+            expr_q.push(v);
         }
-        else if (isdigit(expr[i])) {
-            int x = 0;
-            while (isdigit(expr[i])) {
-                x = x * 10 + (expr[i] - '0');
-                i++;
-            }
-            i--;
-            expr_q.push(x);
+        else if (v == '(') {
+            expr_st.push(v);
         }
-        else if (expr[i] == '(') {
-            expr_st.push(expr[i]);
-        }
-        else if (expr[i] == ')') {
+        else if (v == ')') {
             // помещение стека в очередь до ")"
-            while (expr_st.top()->data != ')') {
+            while (expr_st.top()->data != '(') {
                 expr_q.push(expr_st.top()->data);
                 expr_st.pop();
             }
@@ -89,14 +112,14 @@ std::string Calculator :: change_expr(std::string expr) {
         }
         else {
             // помещение в стек пока не встретим оператор с меньш приоритетом
-            while (!expr_st.empty() && (( (expr[i]=='*' || expr[i]=='/') && expr_st.top()->data == '+') || ((expr[i]=='*' || expr[i]=='/') && expr_st.top()->data == '-'))) {
+            while (!expr_st.empty() && (priority(v) >= priority(expr_st.top()->data))) {
                 expr_q.push(expr_st.top()->data);
                 expr_st.pop();
             }
+            expr_q.push(' ');
             // текущий оператор - в стек
-            expr_st.push(expr[i]);
+            expr_st.push(v);
         }
-
     }
 
     // помещение в стек оставшихся операторов
@@ -105,30 +128,32 @@ std::string Calculator :: change_expr(std::string expr) {
         expr_st.pop();
     }
 
-    std::string ex;
-    while (!expr_q.empty()) {
-        ex.push_back(expr_q.front()->data);
-        ex.push_back(' ');
-        expr_q.pop();
-    }
-    return ex;
 
+    return expr_q;
 }
 
-int Calculator :: calc(std::string expr) {
-    std::string ex = change_expr(expr);
+// Вычисление
+int Calculator :: calc(const std::string& expr) {
+    Queue ex = change_expr(expr);
     Stack calc_stack;
-    int len = expr.length();
+    int len = ex.size;
+
+    // check
     for (int i = 0; i < len; i++) {
-        if (expr[i] == ' ') {
+        std::cout << ex.pos(i);
+    }
+    std::cout << std::endl;
+
+    for (int i = 0; i < len; i++) {
+        if (ex.pos(i) == ' ') {
             continue;
         }
-            // считывание операнда до пробела
-        else if (isdigit(expr[i])) {
+            // считывание операнда до пробела/оператора
+        else if (isdigit(ex.pos(i))) {
             int x = 0;
-            while (isdigit(expr[i])) {
+            while (isdigit(ex.pos(i))) {
                 // приведение к типу int,- '0' удаление смещения при переходе из char в int
-                x = x * 10 + (expr[i] - '0');
+                x = x * 10 + (ex.pos(i) - '0');
                 i++;
             }
             i--; // возврат к концу числа
@@ -147,29 +172,22 @@ int Calculator :: calc(std::string expr) {
                 pos = true;
             }
 
-            if (expr[i] == '+') {
+            if (ex.pos(i) == '+') {
                 calc_stack.push(a+b);
             }
-            else if (expr[i] == '-') {
+            else if (ex.pos(i) == '-') {
                 if (!pos) {
                     // для случая, если первое число в выражении - отрицательное
                     calc_stack.push(0-a);
                 }
                 else {
-                    // отрицательные числа в выражении
-                    if (expr[i+1]== '+' || expr[i+1]=='-' || expr[i+1]=='/' || expr[i+1]=='*') {
-                        calc_stack.push(a);
-                        calc_stack.push(0-b);
-                    }
-                    else {
-                        calc_stack.push(b-a);
-                    }
+                    calc_stack.push(b-a);
                 }
             }
-            else if (expr[i] == '*') {
+            else if (ex.pos(i) == '*') {
                 calc_stack.push(a*b);
             }
-            else if (expr[i] == '/') {
+            else if (ex.pos(i) == '/') {
                 if (a == 0) {
                     std::cout << "Incorrect expression. ";
                     return 0;
@@ -184,6 +202,8 @@ int Calculator :: calc(std::string expr) {
         return calc_stack.top()->data;
     }
     else {
+        // check
+        // return calc_stack.top()->data;
         std::cout << "Incorrect expression. ";
         return 0;
     }
@@ -219,3 +239,5 @@ int main() {
 }
 
 
+
+// можно было бы создавать несколько экземпляров класса калькулятор, в атрибутах сделать expr и два метода - вычисление и проверка
