@@ -2,8 +2,8 @@
 // Infix calculator with queue and stack  //
 // ---------------------------------------//
 
-#include "header.h"
 
+#include "header.h"
 
 class Stack {
 public:
@@ -99,14 +99,18 @@ int Calculator :: priority(char op) {
 Queue Calculator :: change_expr(const std::string& expr) {
     Stack_char expr_st;
     Queue expr_q;
-    for (char v: expr) {
-        if (v == ' ' || isdigit(v)) {
-            expr_q.push(v);
+    for (int i = 0; i < expr.length();i++) {
+        if (expr[i] == ' ' || isdigit(expr[i])) {
+            expr_q.push(expr[i]);
         }
-        else if (v == '(') {
-            expr_st.push(v);
+        else if (expr[i] == '(') {
+            expr_st.push(expr[i]);
+            // (-5) --> (0-5)
+            if (expr[i+1] == '-') {
+                expr_q.push('0');
+            }
         }
-        else if (v == ')') {
+        else if (expr[i] == ')') {
             // помещение стека в очередь до ")"
             while (expr_st.top()->data != '(') {
                 expr_q.push(expr_st.top()->data);
@@ -116,13 +120,13 @@ Queue Calculator :: change_expr(const std::string& expr) {
         }
         else {
             // помещение в стек пока не встретим оператор с меньш приоритетом
-            while (!expr_st.empty() && (priority(v) >= priority(expr_st.top()->data))) {
+            while (!expr_st.empty() && (priority(expr[i]) >= priority(expr_st.top()->data))) {
                 expr_q.push(expr_st.top()->data);
                 expr_st.pop();
             }
             expr_q.push(' ');
             // текущий оператор - в стек
-            expr_st.push(v);
+            expr_st.push(expr[i]);
         }
     }
 
@@ -242,6 +246,3 @@ int main() {
     return 0;
 }
 
-
-
-// можно было бы создавать несколько экземпляров класса калькулятор, в атрибутах сделать expr и два метода - вычисление и проверка
